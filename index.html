@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GEC Wayanad TechFest Hub - Dynamic, RO-Crate structured event portal for competitions, workshops, talks, schedules, and live updates.">
+  <meta name="theme-color" content="#0d1117">
+  <title>GEC Wayanad TechFest Hub | FUTURA '26</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/gecw-logo.png">
+  
+  <!-- External CSS Stylesheet adhering to assignment constraints -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header Landmark -->
+  <header class="site-header" id="top">
+    <div class="header-inner container">
+      <div class="brand-group">
+        <a href="#top" class="brand-link" aria-label="GEC Wayanad TechFest Home">
+          <div class="brand-logo-wrap">
+            <img 
+              src="assets/gecw-logo.png" 
+              alt="GEC Wayanad College Crest" 
+              class="college-logo" 
+              width="48" 
+              height="48"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            >
+            <div class="brand-logo-badge fallback-badge" aria-hidden="true" style="display: none;">
+              <span>GECW</span>
+            </div>
+          </div>
+          <div class="brand-meta">
+            <span class="institution-name">Govt. Engineering College Wayanad</span>
+            <h1 class="festival-title" id="fest-main-title">FUTURA '26 TechFest</h1>
+          </div>
+        </a>
+      </div>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <ul class="nav-list">
+          <li><a href="#overview" class="nav-link">Overview</a></li>
+          <li><a href="#events-section" class="nav-link">Events &amp; Workshops</a></li>
+          <li><a href="#schedule-section" class="nav-link">Schedule</a></li>
+          <li><a href="#updates-section" class="nav-link">Live Updates</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-outline" id="view-saved-btn" aria-label="View Saved Events">
+          <span class="icon-bookmark" aria-hidden="true">★</span>
+          <span>Saved</span>
+          <span class="saved-counter" id="saved-counter-badge">0</span>
+        </button>
+        <a href="#events-section" class="btn btn-primary">Explore Events</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Landmark -->
+  <main id="main-content">
+    
+    <!-- Hero & Festival Overview Section -->
+    <section class="hero-section" id="overview" aria-labelledby="hero-heading">
+      <div class="hero-container container">
+        <div class="hero-content">
+          <div class="tag-pill" id="fest-edition-pill">12th Edition • National Level Festival</div>
+          <h2 class="hero-heading" id="hero-heading">
+            Innovate for the Hills, <br>
+            <span class="gradient-text">Code for the Globe</span>
+          </h2>
+          <p class="hero-description" id="fest-summary">
+            Loading institutional dataset...
+          </p>
+          
+          <div class="hero-quick-meta" id="fest-meta-bar">
+            <!-- Dynamically populated from techfest-2026 entity -->
+          </div>
+
+          <div class="hero-cta-group">
+            <a href="#events-section" class="btn btn-primary btn-large">Browse All Events</a>
+            <a href="#schedule-section" class="btn btn-secondary btn-large">View Full Schedule</a>
+          </div>
+        </div>
+
+        <aside class="hero-stat-card" aria-label="Quick Highlights">
+          <div class="stat-header">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span class="stat-caption">FESTIVAL HIGHLIGHTS</span>
+          </div>
+          <div class="stat-grid" id="fest-stat-grid">
+            <div class="stat-item">
+              <span class="stat-num" id="stat-events-count">--</span>
+              <span class="stat-lbl">Featured Events</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num" id="stat-prize-pool">₹1.15L+</span>
+              <span class="stat-lbl">Cash Prize Pool</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num">3 Days</span>
+              <span class="stat-lbl">Intensive Tech</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num">24h</span>
+              <span class="stat-lbl">Hackathon Run</span>
+            </div>
+          </div>
+          <div class="stat-footer">
+            <small>Government Engineering College Wayanad</small>
+            <span class="tech-badge">GECW 2026</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Interactive Events Section: Search, Filters, and Dynamic Cards Grid -->
+    <section class="events-section" id="events-section" aria-labelledby="events-heading">
+      <div class="container">
+        
+        <div class="section-header-wrap">
+          <div>
+            <span class="section-sub-label">EXPLORE &amp; COMPETE</span>
+            <h2 class="section-title" id="events-heading">Events, Workshops &amp; Tech Talks</h2>
+            <p class="section-lead">Discover team challenges, masterclasses, and visionary keynotes dynamically rendered from structured JSON.</p>
+          </div>
+          
+          <div class="event-stats-summary" id="events-count-badge" aria-live="polite">
+            Showing <strong id="visible-count">0</strong> of <span id="total-count">0</span> events
+          </div>
+        </div>
+
+        <!-- Controls: Real-Time Instant Search & Category Filters -->
+        <div class="search-and-filters-panel" role="search" aria-label="Event filters and search">
+          <div class="search-box-wrap">
+            <label for="event-search-input" class="visually-hidden">Search events, workshops, technologies, or speakers</label>
+            <div class="input-icon-wrap">
+              <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input 
+                type="search" 
+                id="event-search-input" 
+                class="search-input" 
+                placeholder="Type to filter: e.g. 'Hackathon', 'AI', 'Kubernetes', 'Robotics'..."
+                autocomplete="off"
+                spellcheck="false"
+              >
+              <button type="button" id="clear-search-btn" class="clear-input-btn hidden" aria-label="Clear search input">✕</button>
+            </div>
+          </div>
+
+          <div class="filter-controls-row">
+            <!-- Category Pills -->
+            <div class="category-pills-group" role="tablist" aria-label="Filter events by category">
+              <button type="button" class="filter-chip active" data-category="all" role="tab" aria-selected="true">
+                All Tracks
+              </button>
+              <button type="button" class="filter-chip" data-category="Competition" role="tab" aria-selected="false">
+                Competitions
+              </button>
+              <button type="button" class="filter-chip" data-category="Workshop" role="tab" aria-selected="false">
+                Workshops
+              </button>
+              <button type="button" class="filter-chip" data-category="Talk" role="tab" aria-selected="false">
+                Tech Talks
+              </button>
+            </div>
+
+            <!-- Additional Quick Filter Dropdowns -->
+            <div class="filter-selects-group">
+              <label for="status-filter" class="visually-hidden">Filter by Registration Status</label>
+              <select id="status-filter" class="filter-select" aria-label="Filter by Registration Status">
+                <option value="all">All Statuses</option>
+                <option value="open">Registration Open</option>
+                <option value="free">Free Entry</option>
+                <option value="limited">Limited Seats</option>
+              </select>
+
+              <label for="sort-select" class="visually-hidden">Sort events</label>
+              <select id="sort-select" class="filter-select" aria-label="Sort events">
+                <option value="default">Default Order</option>
+                <option value="name-asc">Name (A - Z)</option>
+                <option value="name-desc">Name (Z - A)</option>
+                <option value="category">Category</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Events Grid -->
+        <div class="events-grid" id="events-grid-container" aria-live="polite">
+          <!-- Dynamically populated via Vanilla JS -->
+        </div>
+
+        <!-- Empty State Message When No Results Found -->
+        <div class="no-results-card hidden" id="no-results-state" role="status">
+          <div class="no-results-icon">🔍</div>
+          <h3 class="no-results-title">No matching events found</h3>
+          <p class="no-results-desc">
+            We couldn't find any events matching your search or filters. Try adjusting your query or resetting all filters.
+          </p>
+          <button type="button" class="btn btn-secondary" id="reset-filters-btn">
+            Reset Filters &amp; Show All
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Festival Schedule Section -->
+    <section class="schedule-section" id="schedule-section" aria-labelledby="schedule-heading">
+      <div class="container">
+        <div class="section-header-wrap">
+          <div>
+            <span class="section-sub-label">TIMELINE &amp; VENUES</span>
+            <h2 class="section-title" id="schedule-heading">Festival Schedule &amp; Itinerary</h2>
+            <p class="section-lead">Day-by-day sequence of ceremonies, competition rounds, workshops, and keynotes.</p>
+          </div>
+
+          <!-- Schedule Day Filter Tabs -->
+          <div class="schedule-day-tabs" role="tablist" aria-label="Filter schedule by day" id="schedule-tabs">
+            <button type="button" class="day-tab-btn active" data-day="all" role="tab" aria-selected="true">All Days</button>
+            <button type="button" class="day-tab-btn" data-day="Day 1" role="tab" aria-selected="false">Day 1 (Oct 2)</button>
+            <button type="button" class="day-tab-btn" data-day="Day 2" role="tab" aria-selected="false">Day 2 (Oct 3)</button>
+            <button type="button" class="day-tab-btn" data-day="Day 3" role="tab" aria-selected="false">Day 3 (Oct 4)</button>
+          </div>
+        </div>
+
+        <!-- Schedule Timeline List -->
+        <div class="timeline-container" id="schedule-timeline" aria-live="polite">
+          <!-- Dynamically populated via Vanilla JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Updates & Announcements Section -->
+    <section class="updates-section" id="updates-section" aria-labelledby="updates-heading">
+      <div class="container">
+        <div class="section-header-wrap">
+          <div>
+            <span class="section-sub-label">REAL-TIME BULLETIN</span>
+            <h2 class="section-title" id="updates-heading">Official Announcements &amp; Updates</h2>
+            <p class="section-lead">Live logistical alerts, problem track releases, venue notices, and registration updates.</p>
+          </div>
+          <span class="broadcast-pill">
+            <span class="live-dot" aria-hidden="true"></span> Live Feed
+          </span>
+        </div>
+
+        <div class="updates-grid" id="updates-container">
+          <!-- Dynamically generated announcements -->
+        </div>
+      </div>
+    </section>
+
+
+  </main>
+
+  <!-- Detail Modal Dialog for Selected Event -->
+  <dialog id="event-detail-modal" class="modal-dialog" aria-labelledby="modal-event-title" aria-modal="true">
+    <div class="modal-content-card">
+      <div class="modal-header">
+        <div class="modal-header-meta">
+          <span class="event-badge" id="modal-category-badge">Category</span>
+          <span class="status-badge" id="modal-status-badge">Status</span>
+        </div>
+        <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <h3 class="modal-title" id="modal-event-title">Event Title</h3>
+        <p class="modal-desc" id="modal-event-desc">Event description</p>
+
+        <div class="modal-spec-grid" id="modal-spec-grid">
+          <!-- Injected dynamically -->
+        </div>
+
+        <div class="modal-tags-wrap" id="modal-tags-container">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="modal-bookmark-toggle">
+          <span class="btn-star-icon">★</span> Bookmark Event
+        </button>
+        <button type="button" class="btn btn-primary" id="modal-register-action">
+          Register for Event
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Footer Landmark -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-col">
+        <div class="footer-brand-wrap">
+          <img 
+            src="assets/gecw-logo.png" 
+            alt="GEC Wayanad Logo" 
+            class="footer-logo" 
+            width="42" 
+            height="42"
+            onerror="this.style.display='none';"
+          >
+          <div class="footer-brand">GEC WAYANAD</div>
+        </div>
+        <p class="footer-text">
+          Government Engineering College Wayanad<br>
+          Mananthavady, Thalapuzha P.O, Wayanad, Kerala - 670644
+        </p>
+        <p class="footer-subtext">Approved by AICTE • Affiliated to APJ Abdul Kalam Technological University</p>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">Domain Showcase</h4>
+        <ul class="footer-links">
+          <li><a href="#events-section">Competitions &amp; Hackathons</a></li>
+          <li><a href="#events-section">Technical Workshops</a></li>
+          <li><a href="#events-section">Expert Tech Talks</a></li>
+          <li><a href="#schedule-section">Festival Schedule</a></li>
+          <li><a href="#updates-section">Live Announcements</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">Web Assignment 1</h4>
+        <ul class="footer-spec-list">
+          <li><strong>Architecture:</strong> HTML5 + CSS3 + Vanilla JS</li>
+          <li><strong>Data Model:</strong> RO-Crate Graph Model</li>
+          <li><strong>Responsiveness:</strong> Mobile to 8K Displays</li>
+          <li><strong>Client-Side:</strong> Instant Zero-Reload Filtering</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="container footer-bottom-inner">
+        <p>&copy; 2026 Government Engineering College Wayanad. Built for Assignment 1.</p>
+        <a href="#top" class="back-to-top" aria-label="Back to top of page">↑ Back to Top</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Vanilla JavaScript Application Logic -->
+  <script src="js/app.js"></script>
+</body>
+</html>
