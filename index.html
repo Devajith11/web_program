@@ -194,6 +194,23 @@
           </div>
         </div>
 
+        <!-- Asynchronous Fetch Loading Feedback State -->
+        <div class="loading-state-card" id="fetch-loading-state" role="status" aria-live="polite">
+          <div class="loading-spinner" aria-hidden="true"></div>
+          <h3 class="loading-title">Connecting to PHP RESTful Data Service...</h3>
+          <p class="loading-desc">Fetching institutional dataset asynchronously via Fetch API...</p>
+        </div>
+
+        <!-- Asynchronous Fetch Error State -->
+        <div class="error-state-card hidden" id="fetch-error-state" role="alert">
+          <div class="error-icon" aria-hidden="true">⚠️</div>
+          <h3 class="error-title">Unable to Fetch Institutional Data</h3>
+          <p class="error-desc" id="fetch-error-message">The PHP RESTful endpoint (api/events.php) could not be reached.</p>
+          <button type="button" class="btn btn-primary" id="retry-fetch-btn">
+            Retry Connection
+          </button>
+        </div>
+
         <!-- Dynamic Events Grid -->
         <div class="events-grid" id="events-grid-container" aria-live="polite">
           <!-- Dynamically populated via Vanilla JS -->

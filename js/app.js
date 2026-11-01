@@ -362,6 +362,12 @@ const DOM = {
   festMetaBar: document.getElementById('fest-meta-bar'),
   statEventsCount: document.getElementById('stat-events-count'),
   
+  // Async Fetch UI Feedback States
+  fetchLoadingState: document.getElementById('fetch-loading-state'),
+  fetchErrorState: document.getElementById('fetch-error-state'),
+  fetchErrorMessage: document.getElementById('fetch-error-message'),
+  retryFetchBtn: document.getElementById('retry-fetch-btn'),
+
   // Search & Filter
   searchInput: document.getElementById('event-search-input'),
   clearSearchBtn: document.getElementById('clear-search-btn'),
@@ -406,19 +412,73 @@ async function initApp() {
 }
 
 /**
- * 2. Load Dataset (Fetch with fallback for local file:// mode)
+ * 2. Asynchronous Fetch from PHP RESTful Endpoint (Assignment 2)
+ * Demonstrates: JSON file -> PHP server endpoint -> HTTP Response -> Client Fetch -> DOM rendering
  */
 async function loadDataset() {
+  // Show UI Loading Feedback
+  if (DOM.fetchLoadingState) DOM.fetchLoadingState.classList.remove('hidden');
+  if (DOM.fetchErrorState) DOM.fetchErrorState.classList.add('hidden');
+  if (DOM.eventsGrid) DOM.eventsGrid.style.opacity = '0.3';
+
+  const PRIMARY_ENDPOINT = 'api/events.php';
+  const FALLBACK_STATIC_ENDPOINT = 'data/techfest.json';
+
   try {
-    const response = await fetch('data/techfest.json');
-    if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`);
+    let response;
+    let dataProvider = 'PHP RESTful Endpoint (api/events.php)';
+
+    // Attempt 1: Fetch asynchronously from the PHP RESTful backend
+    try {
+      response = await fetch(PRIMARY_ENDPOINT, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-cache'
+      });
+
+      if (!response.ok) {
+        throw new Error(`PHP Endpoint returned HTTP ${response.status} (${response.statusText})`);
+      }
+    } catch (phpError) {
+      console.warn('PHP endpoint unreachable (running on static host or local file origin). Falling back to direct JSON file...', phpError);
+      // Attempt 2: Fallback to standalone .json file
+      response = await fetch(FALLBACK_STATIC_ENDPOINT, {
+        headers: { 'Accept': 'application/json' }
+      });
+      dataProvider = 'Static JSON Data Provider (data/techfest.json)';
+
+      if (!response.ok) {
+        throw new Error(`Fallback HTTP ${response.status} (${response.statusText})`);
+      }
     }
-    const data = await response.json();
-    processGraphData(data);
+
+    const payload = await response.json();
+    console.info(`[TechFest Hub] Data received successfully via ${dataProvider}:`, payload);
+
+    // Hide UI Loading State
+    if (DOM.fetchLoadingState) DOM.fetchLoadingState.classList.add('hidden');
+    if (DOM.eventsGrid) DOM.eventsGrid.style.opacity = '1';
+
+    processGraphData(payload);
+
   } catch (err) {
-    console.warn('Network fetch for data/techfest.json unsuccessful (likely local file:// origin or offline). Using embedded RO-Crate graph dataset.', err);
-    processGraphData(FALLBACK_GRAPH_DATA);
+    console.error('[TechFest Hub] Asynchronous fetch request failed:', err);
+
+    // Protocol check: if local file://, use embedded data, otherwise display Error UI state
+    if (typeof FALLBACK_GRAPH_DATA !== 'undefined' && window.location.protocol === 'file:') {
+      console.warn('Operating via local file:// protocol. Ingesting embedded RO-Crate graph dataset.');
+      if (DOM.fetchLoadingState) DOM.fetchLoadingState.classList.add('hidden');
+      if (DOM.eventsGrid) DOM.eventsGrid.style.opacity = '1';
+      processGraphData(FALLBACK_GRAPH_DATA);
+    } else {
+      // Display UI Failed Fetch Request Feedback
+      if (DOM.fetchLoadingState) DOM.fetchLoadingState.classList.add('hidden');
+      if (DOM.fetchErrorState) {
+        DOM.fetchErrorState.classList.remove('hidden');
+        if (DOM.fetchErrorMessage) {
+          DOM.fetchErrorMessage.textContent = `Server Connection Failure: ${err.message}. Ensure the PHP server (php -S localhost:8000) is running and accessible.`;
+        }
+      }
+    }
   }
 }
 
@@ -938,6 +998,13 @@ function setupEventListeners() {
       tab.setAttribute('aria-selected', 'true');
       AppState.activeScheduleDay = tab.dataset.day || 'all';
       renderSchedule();
+    });
+  }
+
+  // Retry Connection Button on Failed Fetch Requests
+  if (DOM.retryFetchBtn) {
+    DOM.retryFetchBtn.addEventListener('click', () => {
+      loadDataset();
     });
   }
 

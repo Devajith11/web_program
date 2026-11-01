@@ -1,0 +1,170 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GECWTechFestGraphSchema",
+  "description": "JSON Schema specification for Government Engineering College Wayanad TechFest RO-Crate aligned dataset",
+  "type": "object",
+  "required": ["graph"],
+  "additionalProperties": false,
+  "properties": {
+    "graph": {
+      "type": "array",
+      "description": "Heterogeneous graph array containing interconnected institutional TechFest entities",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/definitions/TechFestEvent" },
+          { "$ref": "#/definitions/CompetitionEvent" },
+          { "$ref": "#/definitions/WorkshopEvent" },
+          { "$ref": "#/definitions/TalkEvent" },
+          { "$ref": "#/definitions/ScheduleItem" },
+          { "$ref": "#/definitions/UpdateNotification" }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "TechFestEvent": {
+      "type": "object",
+      "description": "Root festival entity describing the overall institutional event",
+      "required": ["id", "type", "name", "startDate", "endDate", "venue"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["Event"] },
+        "name": { "type": "string" },
+        "edition": { "type": "string" },
+        "tagline": { "type": "string" },
+        "description": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "venue": { "type": "string" },
+        "organizer": { "type": "string" },
+        "contactEmail": { "type": "string", "format": "email" },
+        "contactPhone": { "type": "string" },
+        "events": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "schedules": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "updates": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "CompetitionEvent": {
+      "type": "object",
+      "description": "Competitive challenge or hackathon entity",
+      "required": ["id", "type", "name", "category", "description", "teamSize", "registrationRequired"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["Competition"] },
+        "name": { "type": "string" },
+        "shortCode": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["Competition"] },
+        "department": { "type": "string" },
+        "teamSize": { "type": "string" },
+        "registrationRequired": { "type": "boolean" },
+        "registrationFee": { "type": "string" },
+        "prizePool": { "type": "string" },
+        "venue": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "coordinator": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "WorkshopEvent": {
+      "type": "object",
+      "description": "Technical hands-on workshop or training session",
+      "required": ["id", "type", "name", "category", "description", "duration", "registrationRequired"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["Workshop"] },
+        "name": { "type": "string" },
+        "shortCode": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["Workshop"] },
+        "department": { "type": "string" },
+        "teamSize": { "type": "string" },
+        "duration": { "type": "string" },
+        "registrationRequired": { "type": "boolean" },
+        "registrationFee": { "type": "string" },
+        "prizePool": { "type": "string" },
+        "venue": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "instructor": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "TalkEvent": {
+      "type": "object",
+      "description": "Keynote address, expert lecture, or fireside chat",
+      "required": ["id", "type", "name", "category", "description", "speaker", "registrationRequired"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["Talk"] },
+        "name": { "type": "string" },
+        "shortCode": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["Talk"] },
+        "department": { "type": "string" },
+        "teamSize": { "type": "string" },
+        "duration": { "type": "string" },
+        "speaker": { "type": "string" },
+        "registrationRequired": { "type": "boolean" },
+        "registrationFee": { "type": "string" },
+        "venue": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "status": { "type": "string" }
+      }
+    },
+    "ScheduleItem": {
+      "type": "object",
+      "description": "Chronological itinerary slot linked to festival events",
+      "required": ["id", "type", "day", "time", "title", "venue", "category", "eventId"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["Schedule"] },
+        "day": { "type": "string" },
+        "dayKey": { "type": "string" },
+        "time": { "type": "string" },
+        "title": { "type": "string" },
+        "venue": { "type": "string" },
+        "category": { "type": "string" },
+        "eventId": { "type": "string" },
+        "speaker": { "type": "string" }
+      }
+    },
+    "UpdateNotification": {
+      "type": "object",
+      "description": "Real-time bulletin notification or announcement",
+      "required": ["id", "type", "timestamp", "title", "content"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["Update"] },
+        "timestamp": { "type": "string" },
+        "title": { "type": "string" },
+        "tag": { "type": "string" },
+        "badge": { "type": "string" },
+        "content": { "type": "string" }
+      }
+    }
+  }
+}
