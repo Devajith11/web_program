@@ -414,6 +414,7 @@ async function initApp() {
 /**
  * 2. Asynchronous Fetch from PHP RESTful Endpoint (Assignment 2)
  * Demonstrates: JSON file -> PHP server endpoint -> HTTP Response -> Client Fetch -> DOM rendering
+ * Automatically detects whether PHP is running on the host or if deployed on static GitHub Pages.
  */
 async function loadDataset() {
   // Show UI Loading Feedback
@@ -424,59 +425,72 @@ async function loadDataset() {
   const PRIMARY_ENDPOINT = 'api/events.php';
   const FALLBACK_STATIC_ENDPOINT = 'data/techfest.json';
 
+  let payload = null;
+  let dataProvider = '';
+
+  // Attempt 1: Fetch asynchronously from the PHP RESTful backend
   try {
-    let response;
-    let dataProvider = 'PHP RESTful Endpoint (api/events.php)';
+    const phpRes = await fetch(PRIMARY_ENDPOINT, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-cache'
+    });
 
-    // Attempt 1: Fetch asynchronously from the PHP RESTful backend
-    try {
-      response = await fetch(PRIMARY_ENDPOINT, {
-        headers: { 'Accept': 'application/json' },
-        cache: 'no-cache'
-      });
-
-      if (!response.ok) {
-        throw new Error(`PHP Endpoint returned HTTP ${response.status} (${response.statusText})`);
-      }
-    } catch (phpError) {
-      console.warn('PHP endpoint unreachable (running on static host or local file origin). Falling back to direct JSON file...', phpError);
-      // Attempt 2: Fallback to standalone .json file
-      response = await fetch(FALLBACK_STATIC_ENDPOINT, {
-        headers: { 'Accept': 'application/json' }
-      });
-      dataProvider = 'Static JSON Data Provider (data/techfest.json)';
-
-      if (!response.ok) {
-        throw new Error(`Fallback HTTP ${response.status} (${response.statusText})`);
-      }
+    if (!phpRes.ok) {
+      throw new Error(`PHP Endpoint returned HTTP ${phpRes.status} (${phpRes.statusText})`);
     }
 
-    const payload = await response.json();
-    console.info(`[TechFest Hub] Data received successfully via ${dataProvider}:`, payload);
+    const rawText = await phpRes.text();
 
-    // Hide UI Loading State
+    // Check if the server returned raw PHP source (e.g. GitHub Pages or static server without PHP engine)
+    const trimmed = rawText.trim();
+    if (trimmed.startsWith('<?php') || trimmed.startsWith('<?') || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+      throw new Error('Static host detected (PHP engine not present). Falling back to JSON data provider.');
+    }
+
+    payload = JSON.parse(rawText);
+    dataProvider = 'PHP RESTful Endpoint (api/events.php)';
+
+  } catch (phpError) {
+    console.warn('[TechFest Hub] PHP data provider inactive in this environment:', phpError.message);
+
+    // Attempt 2: Fallback to standalone data/techfest.json
+    try {
+      const jsonRes = await fetch(FALLBACK_STATIC_ENDPOINT, {
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (!jsonRes.ok) {
+        throw new Error(`Fallback HTTP ${jsonRes.status} (${jsonRes.statusText})`);
+      }
+
+      payload = await jsonRes.json();
+      dataProvider = 'Static JSON Data Provider (data/techfest.json)';
+
+    } catch (jsonError) {
+      console.warn('[TechFest Hub] Static JSON fetch unsuccessful:', jsonError.message);
+    }
+  }
+
+  // Attempt 3: If running via local file:// protocol with strict CORS, use embedded graph
+  if (!payload && typeof FALLBACK_GRAPH_DATA !== 'undefined' && FALLBACK_GRAPH_DATA.graph) {
+    console.warn('[TechFest Hub] Operating via local file:// protocol. Ingesting embedded RO-Crate graph dataset.');
+    payload = FALLBACK_GRAPH_DATA;
+    dataProvider = 'Embedded RO-Crate Graph Dataset';
+  }
+
+  // Validation & UI State Resolution
+  if (payload && Array.isArray(payload.graph)) {
+    console.info(`[TechFest Hub] Data successfully loaded via ${dataProvider}:`, payload);
     if (DOM.fetchLoadingState) DOM.fetchLoadingState.classList.add('hidden');
     if (DOM.eventsGrid) DOM.eventsGrid.style.opacity = '1';
-
     processGraphData(payload);
-
-  } catch (err) {
-    console.error('[TechFest Hub] Asynchronous fetch request failed:', err);
-
-    // Protocol check: if local file://, use embedded data, otherwise display Error UI state
-    if (typeof FALLBACK_GRAPH_DATA !== 'undefined' && window.location.protocol === 'file:') {
-      console.warn('Operating via local file:// protocol. Ingesting embedded RO-Crate graph dataset.');
-      if (DOM.fetchLoadingState) DOM.fetchLoadingState.classList.add('hidden');
-      if (DOM.eventsGrid) DOM.eventsGrid.style.opacity = '1';
-      processGraphData(FALLBACK_GRAPH_DATA);
-    } else {
-      // Display UI Failed Fetch Request Feedback
-      if (DOM.fetchLoadingState) DOM.fetchLoadingState.classList.add('hidden');
-      if (DOM.fetchErrorState) {
-        DOM.fetchErrorState.classList.remove('hidden');
-        if (DOM.fetchErrorMessage) {
-          DOM.fetchErrorMessage.textContent = `Server Connection Failure: ${err.message}. Ensure the PHP server (php -S localhost:8000) is running and accessible.`;
-        }
+  } else {
+    console.error('[TechFest Hub] All data providers failed to return valid JSON.');
+    if (DOM.fetchLoadingState) DOM.fetchLoadingState.classList.add('hidden');
+    if (DOM.fetchErrorState) {
+      DOM.fetchErrorState.classList.remove('hidden');
+      if (DOM.fetchErrorMessage) {
+        DOM.fetchErrorMessage.textContent = 'Server Connection Failure: Unable to retrieve institutional data. Ensure the PHP server (php -S localhost:8000) is running or dataset is accessible.';
       }
     }
   }
