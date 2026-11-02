@@ -350,7 +350,8 @@ const AppState = {
   activeSort: 'default',
   searchQuery: '',
   activeScheduleDay: 'all',
-  showingSavedOnly: false
+  showingSavedOnly: false,
+  currentUser: null
 };
 
 // DOM Elements Cache
@@ -389,7 +390,7 @@ const DOM = {
   viewSavedBtn: document.getElementById('view-saved-btn'),
   savedCounterBadge: document.getElementById('saved-counter-badge'),
 
-  // Modal Dialog
+  // Detail Modal Dialog
   modal: document.getElementById('event-detail-modal'),
   modalCloseBtn: document.getElementById('modal-close-btn'),
   modalCategoryBadge: document.getElementById('modal-category-badge'),
@@ -399,7 +400,48 @@ const DOM = {
   modalSpecGrid: document.getElementById('modal-spec-grid'),
   modalTagsContainer: document.getElementById('modal-tags-container'),
   modalBookmarkToggle: document.getElementById('modal-bookmark-toggle'),
-  modalRegisterAction: document.getElementById('modal-register-action')
+  modalRegisterAction: document.getElementById('modal-register-action'),
+
+  // Admin Session Elements (Assignment 3)
+  adminBar: document.getElementById('admin-bar'),
+  adminUserDisplay: document.getElementById('admin-user-display'),
+  btnOpenLogin: document.getElementById('btn-open-login'),
+  btnOpenCreateModal: document.getElementById('btn-open-create-modal'),
+  btnAdminLogout: document.getElementById('btn-admin-logout'),
+
+  // Admin Login Modal Elements
+  adminLoginModal: document.getElementById('admin-login-modal'),
+  adminLoginForm: document.getElementById('admin-login-form'),
+  loginUsernameInput: document.getElementById('login-username'),
+  loginPasswordInput: document.getElementById('login-password'),
+  loginErrorMsg: document.getElementById('login-error-msg'),
+  loginModalCloseBtn: document.getElementById('login-modal-close-btn'),
+  loginCancelBtn: document.getElementById('login-cancel-btn'),
+
+  // Admin Event Create/Edit Modal Elements
+  adminEventModal: document.getElementById('admin-event-modal'),
+  adminEventForm: document.getElementById('admin-event-form'),
+  adminEventModalTitle: document.getElementById('admin-event-modal-title'),
+  adminEventModeBadge: document.getElementById('admin-event-mode-badge'),
+  eventFormErrorMsg: document.getElementById('event-form-error-msg'),
+  eventFormModalCloseBtn: document.getElementById('event-form-modal-close-btn'),
+  eventFormCancelBtn: document.getElementById('event-form-cancel-btn'),
+  eventFormId: document.getElementById('event-form-id'),
+  eventFormName: document.getElementById('event-form-name'),
+  eventFormCategory: document.getElementById('event-form-category'),
+  eventFormShortCode: document.getElementById('event-form-shortcode'),
+  eventFormDepartment: document.getElementById('event-form-department'),
+  eventFormTeamSize: document.getElementById('event-form-teamsize'),
+  eventFormDuration: document.getElementById('event-form-duration'),
+  eventFormFee: document.getElementById('event-form-fee'),
+  eventFormPrize: document.getElementById('event-form-prize'),
+  eventFormVenue: document.getElementById('event-form-venue'),
+  eventFormDate: document.getElementById('event-form-date'),
+  eventFormTime: document.getElementById('event-form-time'),
+  eventFormCoordinator: document.getElementById('event-form-coordinator'),
+  eventFormTags: document.getElementById('event-form-tags'),
+  eventFormStatus: document.getElementById('event-form-status'),
+  eventFormDesc: document.getElementById('event-form-desc')
 };
 
 /**
@@ -408,6 +450,7 @@ const DOM = {
 async function initApp() {
   loadSavedBookmarks();
   setupEventListeners();
+  await checkAuthSession();
   await loadDataset();
 }
 
@@ -704,9 +747,16 @@ function renderEvents() {
             <span class="live-dot" style="width:6px;height:6px;" aria-hidden="true"></span>
             <span>${escapeHTML(event.status || 'Active')}</span>
           </div>
-          <button type="button" class="btn btn-secondary btn-details" data-open-modal="${escapeHTML(event.id)}">
-            View Details
-          </button>
+          <div class="card-actions-group">
+            ${AppState.currentUser ? `
+              <button type="button" class="btn btn-card-edit" data-edit-modal="${escapeHTML(event.id)}" title="Edit Event (Authenticated Admin)">
+                Edit
+              </button>
+            ` : ''}
+            <button type="button" class="btn btn-secondary btn-details" data-open-modal="${escapeHTML(event.id)}">
+              View Details
+            </button>
+          </div>
         </div>
       </article>
     `;
@@ -904,7 +954,248 @@ function updateSavedBadgeCount() {
 }
 
 /**
- * 11. Setup UI Event Listeners
+ * 11. Assignment 3: Session Authentication & Admin Functions
+ */
+async function checkAuthSession() {
+  try {
+    const res = await fetch('api/auth.php', {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-cache'
+    });
+    const text = await res.text();
+    if (text.trim().startsWith('<?php')) return; // Running in static environment without PHP engine
+    const data = JSON.parse(text);
+
+    if (data.authenticated && data.user) {
+      AppState.currentUser = data.user;
+      if (DOM.adminBar) DOM.adminBar.classList.remove('hidden');
+      if (DOM.adminUserDisplay) DOM.adminUserDisplay.textContent = data.user.full_name || data.user.username;
+      if (DOM.btnOpenLogin) DOM.btnOpenLogin.textContent = 'Admin Mode';
+      renderEvents();
+    } else {
+      AppState.currentUser = null;
+      if (DOM.adminBar) DOM.adminBar.classList.add('hidden');
+      if (DOM.btnOpenLogin) DOM.btnOpenLogin.textContent = 'Admin Portal';
+    }
+  } catch (err) {
+    console.warn('Session check inactive or running static host:', err);
+  }
+}
+
+function openAdminLoginModal() {
+  if (AppState.currentUser) {
+    alert(`You are currently authenticated as "${AppState.currentUser.username}" (${AppState.currentUser.full_name}). You can create or edit events directly using the Admin Session bar.`);
+    return;
+  }
+  if (DOM.loginErrorMsg) DOM.loginErrorMsg.classList.add('hidden');
+  if (DOM.adminLoginModal) {
+    if (typeof DOM.adminLoginModal.showModal === 'function') {
+      DOM.adminLoginModal.showModal();
+    } else {
+      DOM.adminLoginModal.setAttribute('open', 'true');
+    }
+  }
+}
+
+function closeAdminLoginModal() {
+  if (!DOM.adminLoginModal) return;
+  if (typeof DOM.adminLoginModal.close === 'function') {
+    DOM.adminLoginModal.close();
+  } else {
+    DOM.adminLoginModal.removeAttribute('open');
+  }
+}
+
+async function handleAdminLogin(e) {
+  e.preventDefault();
+  const username = DOM.loginUsernameInput.value.trim();
+  const password = DOM.loginPasswordInput.value.trim();
+
+  try {
+    const res = await fetch('api/auth.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.authenticated && data.user) {
+      AppState.currentUser = data.user;
+      if (DOM.adminBar) DOM.adminBar.classList.remove('hidden');
+      if (DOM.adminUserDisplay) DOM.adminUserDisplay.textContent = data.user.full_name || data.user.username;
+      if (DOM.btnOpenLogin) DOM.btnOpenLogin.textContent = 'Admin Mode';
+      closeAdminLoginModal();
+      renderEvents();
+    } else {
+      if (DOM.loginErrorMsg) {
+        DOM.loginErrorMsg.textContent = data.message || 'Invalid username or password.';
+        DOM.loginErrorMsg.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    if (DOM.loginErrorMsg) {
+      DOM.loginErrorMsg.textContent = `Authentication error: ${err.message}. Please verify the PHP server is running.`;
+      DOM.loginErrorMsg.classList.remove('hidden');
+    }
+  }
+}
+
+async function handleAdminLogout() {
+  try {
+    await fetch('api/auth.php?action=logout', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' }
+    });
+  } catch (err) {
+    console.warn('Logout notice:', err);
+  } finally {
+    AppState.currentUser = null;
+    if (DOM.adminBar) DOM.adminBar.classList.add('hidden');
+    if (DOM.btnOpenLogin) DOM.btnOpenLogin.textContent = 'Admin Portal';
+    renderEvents();
+  }
+}
+
+/**
+ * 12. Assignment 3: Relational Database CRUD Modals & Operations
+ */
+function openCreateEventModal() {
+  if (!DOM.adminEventModal) return;
+  DOM.adminEventForm.reset();
+  DOM.eventFormId.value = '';
+  DOM.adminEventModalTitle.textContent = 'Add New TechFest Event';
+  DOM.adminEventModeBadge.textContent = 'POST /api/events.php (Create)';
+  DOM.adminEventModeBadge.setAttribute('data-type', 'Competition');
+  if (DOM.eventFormErrorMsg) DOM.eventFormErrorMsg.classList.add('hidden');
+
+  if (typeof DOM.adminEventModal.showModal === 'function') {
+    DOM.adminEventModal.showModal();
+  } else {
+    DOM.adminEventModal.setAttribute('open', 'true');
+  }
+}
+
+function openEditEventModal(eventId) {
+  const event = AppState.events.find(e => e.id === eventId);
+  if (!event || !DOM.adminEventModal) return;
+
+  DOM.eventFormId.value = event.id;
+  DOM.adminEventModalTitle.textContent = `Edit Event: ${event.name}`;
+  DOM.adminEventModeBadge.textContent = `PUT /api/events.php?id=${event.id} (Update)`;
+  DOM.adminEventModeBadge.setAttribute('data-type', event.category);
+
+  DOM.eventFormName.value = event.name || '';
+  DOM.eventFormCategory.value = event.category || 'Competition';
+  DOM.eventFormShortCode.value = event.shortCode || '';
+  DOM.eventFormDepartment.value = event.department || '';
+  DOM.eventFormTeamSize.value = event.teamSize || '';
+  DOM.eventFormDuration.value = event.duration || '';
+  DOM.eventFormFee.value = event.registrationFee || 'Free';
+  DOM.eventFormPrize.value = event.prizePool || '';
+  DOM.eventFormVenue.value = event.venue || '';
+  DOM.eventFormDate.value = event.date || '2026-10-02';
+  DOM.eventFormTime.value = event.time || '';
+  DOM.eventFormCoordinator.value = event.coordinator || event.speaker || event.instructor || '';
+  DOM.eventFormTags.value = Array.isArray(event.tags) ? event.tags.join(', ') : (event.tags || '');
+  DOM.eventFormStatus.value = event.status || 'Registration Open';
+  DOM.eventFormDesc.value = event.description || '';
+
+  if (DOM.eventFormErrorMsg) DOM.eventFormErrorMsg.classList.add('hidden');
+
+  if (typeof DOM.adminEventModal.showModal === 'function') {
+    DOM.adminEventModal.showModal();
+  } else {
+    DOM.adminEventModal.setAttribute('open', 'true');
+  }
+}
+
+function closeAdminEventModal() {
+  if (!DOM.adminEventModal) return;
+  if (typeof DOM.adminEventModal.close === 'function') {
+    DOM.adminEventModal.close();
+  } else {
+    DOM.adminEventModal.removeAttribute('open');
+  }
+}
+
+async function handleEventFormSubmit(e) {
+  e.preventDefault();
+
+  const id = DOM.eventFormId.value.trim();
+  const isEditing = id !== '';
+  const method = isEditing ? 'PUT' : 'POST';
+  const endpoint = isEditing ? `api/events.php?id=${encodeURIComponent(id)}` : 'api/events.php';
+
+  const tagsArray = DOM.eventFormTags.value.split(',').map(t => t.trim()).filter(Boolean);
+
+  const payload = {
+    name: DOM.eventFormName.value.trim(),
+    category: DOM.eventFormCategory.value,
+    type: DOM.eventFormCategory.value,
+    shortCode: DOM.eventFormShortCode.value.trim(),
+    department: DOM.eventFormDepartment.value.trim(),
+    teamSize: DOM.eventFormTeamSize.value.trim(),
+    duration: DOM.eventFormDuration.value.trim(),
+    registrationFee: DOM.eventFormFee.value.trim(),
+    prizePool: DOM.eventFormPrize.value.trim(),
+    venue: DOM.eventFormVenue.value.trim(),
+    date: DOM.eventFormDate.value.trim(),
+    time: DOM.eventFormTime.value.trim(),
+    coordinator: DOM.eventFormCoordinator.value.trim(),
+    tags: tagsArray,
+    status: DOM.eventFormStatus.value,
+    description: DOM.eventFormDesc.value.trim()
+  };
+
+  if (isEditing) {
+    payload.id = id;
+  }
+
+  try {
+    const res = await fetch(endpoint, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || `Server responded with HTTP ${res.status}`);
+    }
+
+    const savedRecord = data.data;
+
+    if (isEditing) {
+      const idx = AppState.events.findIndex(ev => ev.id === id);
+      if (idx !== -1) {
+        AppState.events[idx] = savedRecord;
+      }
+    } else {
+      AppState.events.unshift(savedRecord);
+    }
+
+    // Refresh UI smoothly without page reload
+    renderEvents();
+    closeAdminEventModal();
+
+  } catch (err) {
+    if (DOM.eventFormErrorMsg) {
+      DOM.eventFormErrorMsg.textContent = `Mutation Error: ${err.message}`;
+      DOM.eventFormErrorMsg.classList.remove('hidden');
+    }
+  }
+}
+
+/**
+ * 13. Setup UI Event Listeners
  */
 function setupEventListeners() {
   // Real-Time Instant Search Input
@@ -984,8 +1275,14 @@ function setupEventListeners() {
     renderEvents();
   });
 
-  // Event Delegation for Grid (View Details & Bookmark)
+  // Event Delegation for Grid (View Details, Edit & Bookmark)
   DOM.eventsGrid.addEventListener('click', (e) => {
+    const editBtn = e.target.closest('[data-edit-modal]');
+    if (editBtn) {
+      openEditEventModal(editBtn.dataset.editModal);
+      return;
+    }
+
     const detailsBtn = e.target.closest('[data-open-modal]');
     if (detailsBtn) {
       openEventModal(detailsBtn.dataset.openModal);
@@ -998,6 +1295,37 @@ function setupEventListeners() {
       return;
     }
   });
+
+  // Admin Authentication & Mutation Listeners (Assignment 3)
+  if (DOM.btnOpenLogin) {
+    DOM.btnOpenLogin.addEventListener('click', openAdminLoginModal);
+  }
+  if (DOM.loginCancelBtn) {
+    DOM.loginCancelBtn.addEventListener('click', closeAdminLoginModal);
+  }
+  if (DOM.loginModalCloseBtn) {
+    DOM.loginModalCloseBtn.addEventListener('click', closeAdminLoginModal);
+  }
+  if (DOM.adminLoginForm) {
+    DOM.adminLoginForm.addEventListener('submit', handleAdminLogin);
+  }
+  if (DOM.btnAdminLogout) {
+    DOM.btnAdminLogout.addEventListener('click', handleAdminLogout);
+  }
+
+  // Admin Event Form Listeners (Assignment 3)
+  if (DOM.btnOpenCreateModal) {
+    DOM.btnOpenCreateModal.addEventListener('click', openCreateEventModal);
+  }
+  if (DOM.eventFormCancelBtn) {
+    DOM.eventFormCancelBtn.addEventListener('click', closeAdminEventModal);
+  }
+  if (DOM.eventFormModalCloseBtn) {
+    DOM.eventFormModalCloseBtn.addEventListener('click', closeAdminEventModal);
+  }
+  if (DOM.adminEventForm) {
+    DOM.adminEventForm.addEventListener('submit', handleEventFormSubmit);
+  }
 
   // Schedule Day Tabs
   if (DOM.scheduleTabs) {
